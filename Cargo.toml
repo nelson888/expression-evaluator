@@ -2,6 +2,6 @@
 name = "cl_evaluator"
 version = "0.1.0"
 authors = ["nelson888 <tambue@hotmail.fr>"]
-edition = "2019"
+edition = "2018"
 
 [dependencies]
