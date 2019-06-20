@@ -105,10 +105,28 @@ fn step_operator_finder(c: &Box<Computable>, step: u8) -> bool {
     }
 }
 
+fn is_unary_operator(c : char) -> bool {
+    return c == MINUS;
+}
+
+fn evaluate_unary(c: char, n: Integer) -> Integer {
+    return match c {
+        MINUS => - n,
+        _ => {
+            println!("Unknown unary operator {}", c);
+            exit(1);
+        }
+    }
+}
+
 fn to_computable(s: String) -> Box<Computable> {
     let first_char: char = get_first_char(&s);
     if first_char.is_ascii_digit() {
         return Box::new(Constant::of(to_int(&s)));
+    } else if is_unary_operator(first_char) {
+        let num_string : String = s.chars().skip(1).collect();
+        return Box::new(Constant::of(evaluate_unary(first_char,
+                                                    to_int(&num_string))));
     } else {
         return Box::new(Operator::of(first_char));
     }
