@@ -158,6 +158,16 @@ fn compute(mut op : Operation, step : u8) -> Operation {
     }
     return op;
 }
+
+fn evaluate(mut expression : Operation) -> Integer {
+    let mut step : u8 = 0;
+    while expression.len() > 1 && step <= ADD_STEP {
+        expression = compute(expression, step);
+        step += 1;
+    }
+    return expression[0].compute();
+}
+
 //a=4, b=5; a + a * b
 fn main() {
     let mut operation: Operation = env::args()
@@ -178,5 +188,5 @@ fn main() {
         step += 1;
     }
 
-    println!("{:?}", operation[0].compute());
+    println!("{:?}", evaluate(operation));
 }
