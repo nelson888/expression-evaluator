@@ -132,11 +132,11 @@ fn to_computable(s: String) -> Box<Computable> {
     }
 }
 
-type Operation = Vec<Box<Computable>>;
+type Expression = Vec<Box<Computable>>;
 //step 1: ^, step 2: * et /, step 3: + et -
-fn compute(mut op : Operation, step : u8) -> Operation {
+fn compute(mut expr : Expression, step : u8) -> Expression {
     loop {
-        let opt_op_pos: Option<usize> = op.iter()
+        let opt_op_pos: Option<usize> = expr.iter()
             .position(|c| step_operator_finder(c, step));
         if opt_op_pos.is_none() {
             break;
@@ -145,21 +145,21 @@ fn compute(mut op : Operation, step : u8) -> Operation {
         let operator_pos: usize = opt_op_pos.unwrap();
         let result = Box::new(
             Constant::of(
-                op[operator_pos].as_ref()
-                    .operator_compute(op[operator_pos - 1].as_ref(),
-                                      op[operator_pos + 1].as_ref())
+                expr[operator_pos].as_ref()
+                    .operator_compute(expr[operator_pos - 1].as_ref(),
+                                      expr[operator_pos + 1].as_ref())
         ));
 
         //replace the operator and its parameter to the result
-        op.remove(operator_pos);
-        op.insert(operator_pos, result);
-        op.remove(operator_pos + 1);
-        op.remove(operator_pos - 1);
+        expr.remove(operator_pos);
+        expr.insert(operator_pos, result);
+        expr.remove(operator_pos + 1);
+        expr.remove(operator_pos - 1);
     }
-    return op;
+    return expr;
 }
 
-fn evaluate(mut expression : Operation) -> Integer {
+fn evaluate(mut expression : Expression) -> Integer {
     let mut step : u8 = 0;
     while expression.len() > 1 && step <= ADD_STEP {
         expression = compute(expression, step);
@@ -170,23 +170,23 @@ fn evaluate(mut expression : Operation) -> Integer {
 
 //a=4, b=5; a + a * b
 fn main() {
-    let mut operation: Operation = env::args()
+    let mut expression: Expression = env::args()
         .skip(1) //skip the name of the program
         .map(|s| s) //TODO traiter variables
         .map(to_computable)
         .collect();
 
-    if operation.len() == 0 {
-        //TODO scanf operations???
+    if expression.len() == 0 {
+        //TODO scanf expression???
         println!("TODOOO handle when no argument");
         return;
     }
 
     let mut step : u8 = 0;
-    while operation.len() > 1 && step <= ADD_STEP {
-        operation = compute(operation, step);
+    while expression.len() > 1 && step <= ADD_STEP {
+        expression = compute(expression, step);
         step += 1;
     }
 
-    println!("{:?}", evaluate(operation));
+    println!("{:?}", evaluate(expression));
 }
