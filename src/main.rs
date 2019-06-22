@@ -1,11 +1,15 @@
-use std::env;
+use std::{env, io};
 use std::process::exit;
+use std::collections::HashMap;
+use std::io::Stdin;
 
 const PLUS : char = '+';
 const MINUS : char = '-';
 const DIVIDE : char = '/';
 const MULTIPLY : char = 'x';
 const POWER : char = '^';
+
+const OPERATORS : [char; 5] = [PLUS, MINUS, DIVIDE, MULTIPLY, POWER];
 
 const POWER_STEP : u8 = 0;
 const MULTIPLY_STEP : u8 = 1;
@@ -88,11 +92,11 @@ impl Computable for Operator {
     }
 }
 
-fn to_int(s: &String) -> Integer {
+fn to_int(s: &str) -> Integer {
     return s.parse::<Integer>().unwrap();
 }
 
-fn get_first_char(s: &String) -> char {
+fn get_first_char(s: &str) -> char {
     return s.chars().next().unwrap();
 }
 
@@ -119,22 +123,34 @@ fn evaluate_unary(c: char, n: Integer) -> Integer {
     }
 }
 
-fn to_computable(s: String) -> Box<Computable> {
+fn to_computable(s: &str, opt_variable_map: Option<&HashMap<String, Integer>>) -> Box<Computable> {
     let first_char: char = get_first_char(&s);
-    if first_char.is_ascii_digit() {
-        return Box::new(Constant::of(to_int(&s)));
+    if OPERATORS.contains(&first_char) && s.len() == 1 {
+        return Box::new(Operator::of(first_char));
     } else if is_unary_operator(first_char) {
         let num_string : String = s.chars().skip(1).collect();
         return Box::new(Constant::of(evaluate_unary(first_char,
                                                     to_int(&num_string))));
     } else {
-        return Box::new(Operator::of(first_char));
+        if first_char.is_ascii_digit() {
+            return Box::new(Constant::of(to_int(&s)));
+        } else if opt_variable_map.is_some() {
+            let opt_value:Option<&Integer> = opt_variable_map.unwrap().get(&String::from(s));
+            if opt_value.is_none() {
+                println!("'{}' is not defined", s);
+                exit(1);
+            }
+            return Box::new(Constant::of(opt_value.unwrap().clone()));
+        } else {
+            println!("'{}' is not a number", s);
+            exit(1);
+        }
     }
 }
 
 type Expression = Vec<Box<Computable>>;
 //step 1: ^, step 2: * et /, step 3: + et -
-fn compute(mut expr : Expression, step : u8) -> Expression {
+fn evaluate_step(mut expr : Expression, step : u8) -> Expression {
     loop {
         let opt_op_pos: Option<usize> = expr.iter()
             .position(|c| step_operator_finder(c, step));
@@ -162,7 +178,7 @@ fn compute(mut expr : Expression, step : u8) -> Expression {
 fn evaluate(mut expression : Expression) -> Integer {
     let mut step : u8 = 0;
     while expression.len() > 1 && step <= ADD_STEP {
-        expression = compute(expression, step);
+        expression = evaluate_step(expression, step);
         step += 1;
     }
     return expression[0].compute();
@@ -172,21 +188,51 @@ fn evaluate(mut expression : Expression) -> Integer {
 fn main() {
     let mut expression: Expression = env::args()
         .skip(1) //skip the name of the program
-        .map(|s| s) //TODO traiter variables
-        .map(to_computable)
+        .map(|s| to_computable(s.as_str(), None))
         .collect();
 
     if expression.len() == 0 {
         //TODO scanf expression???
-        println!("TODOOO handle when no argument");
+        scan_operation();
         return;
     }
 
     let mut step : u8 = 0;
     while expression.len() > 1 && step <= ADD_STEP {
-        expression = compute(expression, step);
+        expression = evaluate_step(expression, step);
         step += 1;
     }
 
     println!("{:?}", evaluate(expression));
+}
+
+fn scan_operation() {
+    let mut variable_map: HashMap<String, Integer> = HashMap::new();
+
+    let stdin : Stdin = io::stdin();
+    let mut line: String = String::new();
+    loop {
+        line.truncate(0);
+        stdin.read_line(&mut line);
+
+        if !line.trim().ends_with(";") {
+            println!("{:?}", evaluate(line.split_whitespace()
+                .map(|s| to_computable(s, Some(&variable_map)))
+                .collect()));
+            break;
+        }
+
+        let new_length: usize = line.find(';').unwrap();
+        line.truncate(new_length);
+        let assignment : Vec<String> = line.split("=").map(|s| String::from(s)).collect();
+        if assignment.len() != 2 {
+            print!("{} is not properly formatted (should be 'variable = expression)'", line);
+            return;
+        }
+        let identifier = String::from(assignment[0].trim());
+        let expression : Vec<Box<Computable>> = assignment[1].split_whitespace()
+            .map(|s| to_computable(s, Some(&variable_map)))
+            .collect();
+        variable_map.insert(String::from(identifier), evaluate(expression));
+    }
 }
