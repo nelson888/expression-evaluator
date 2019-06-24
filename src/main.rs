@@ -16,6 +16,10 @@ const POWER_STEP : u8 = 0;
 const MULTIPLY_STEP : u8 = 1;
 const ADD_STEP : u8 = 2;
 
+fn last_step() -> u8 {
+    return ADD_STEP;
+}
+
 type Integer = i32;
 
 fn pow(a: Integer, n : Integer) -> Integer {
@@ -179,32 +183,23 @@ fn evaluate_step(mut expr : Expression, step : u8) -> Expression {
 
 fn evaluate(mut expression : Expression) -> Integer {
     let mut step : u8 = 0;
-    while expression.len() > 1 && step <= ADD_STEP {
+    while expression.len() > 1 && step <= last_step() {
         expression = evaluate_step(expression, step);
         step += 1;
     }
     return expression[0].compute();
 }
 
-//a=4, b=5; a + a * b
 fn main() {
-    let mut expression: Expression = env::args()
+    let expression: Expression = env::args()
         .skip(1) //skip the name of the program
         .map(|s| to_computable(s.as_str(), None))
         .collect();
 
     if expression.len() == 0 {
-        //TODO scanf expression???
         scan_operation();
         return;
     }
-
-    let mut step : u8 = 0;
-    while expression.len() > 1 && step <= ADD_STEP { //ADD_STEP = last step
-        expression = evaluate_step(expression, step);
-        step += 1;
-    }
-
     println!("{:?}", evaluate(expression));
 }
 
