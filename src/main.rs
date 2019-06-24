@@ -7,9 +7,10 @@ const PLUS : char = '+';
 const MINUS : char = '-';
 const DIVIDE : char = '/';
 const MULTIPLY : char = 'x';
+const MULTIPLY_2 : char = '*';
 const POWER : char = '^';
 
-const OPERATORS : [char; 5] = [PLUS, MINUS, DIVIDE, MULTIPLY, POWER];
+const OPERATORS : [char; 6] = [PLUS, MINUS, DIVIDE, MULTIPLY, MULTIPLY_2, POWER];
 
 const POWER_STEP : u8 = 0;
 const MULTIPLY_STEP : u8 = 1;
@@ -77,7 +78,7 @@ impl Computable for Operator {
         return match self.symbol {
             PLUS =>  val1 + val2,
             MINUS =>  val1 - val2,
-            MULTIPLY =>  val1 * val2,
+            MULTIPLY |  MULTIPLY_2 =>  val1 * val2,
             DIVIDE =>  val1 / val2,
             POWER =>  pow(val1, val2),
             _ => {
@@ -103,7 +104,8 @@ fn get_first_char(s: &str) -> char {
 fn step_operator_finder(c: &Box<Computable>, step: u8) -> bool {
     return match step {
         POWER_STEP => c.is_operator(POWER),
-        MULTIPLY_STEP => c.is_operator(MULTIPLY) || c.is_operator(DIVIDE),
+        MULTIPLY_STEP => c.is_operator(MULTIPLY) || c.is_operator(MULTIPLY_2)
+            || c.is_operator(DIVIDE),
         ADD_STEP => c.is_operator(PLUS) || c.is_operator(MINUS),
         _ => false
     }
@@ -198,7 +200,7 @@ fn main() {
     }
 
     let mut step : u8 = 0;
-    while expression.len() > 1 && step <= ADD_STEP {
+    while expression.len() > 1 && step <= ADD_STEP { //ADD_STEP = last step
         expression = evaluate_step(expression, step);
         step += 1;
     }
@@ -215,15 +217,13 @@ fn scan_operation() {
         line.truncate(0);
         stdin.read_line(&mut line);
 
-        if !line.trim().ends_with(";") {
+        if !line.trim().contains("=") {
             println!("{:?}", evaluate(line.split_whitespace()
                 .map(|s| to_computable(s, Some(&variable_map)))
                 .collect()));
             break;
         }
 
-        let new_length: usize = line.find(';').unwrap();
-        line.truncate(new_length);
         let assignment : Vec<String> = line.split("=").map(|s| String::from(s)).collect();
         if assignment.len() != 2 {
             print!("{} is not properly formatted (should be 'variable = expression)'", line);
