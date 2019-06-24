@@ -68,3 +68,9 @@ $ ./main
 > a + b
 15
 ```
+
+```
+$ ./main < computation.txt
+15
+```
+where computation.txt is a file whose content is last example's standard input
